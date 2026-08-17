@@ -27,9 +27,6 @@ class MainMosaic:
             if self.image.mode not in ("RGB", "RGBA"):
                 self.image = self.image.convert("RGBA")
 
-            # Das Seitenverhältnis des Originalbildes speichern.
-            self.original_aspect_ratio = self.image.width / self.image.height
-
             print(f"Bild geladen: {path}")
             print(f"Größe: {self.image.size}")
             self.image_size = self.image.size

@@ -5,25 +5,21 @@ from PIL import Image, ImageTk
 
 
 class MosaicGUI:
-    """Verwaltet die Benutzeroberfläche und deren Events."""
+    """Verwaltet die Benutzeroberfläche und nutzt übergebene JSON-Einstellungen."""
 
-    def __init__(self, engine):
-        # Die GUI erhält eine Instanz der Engine, um auf Daten zugreifen zu können
+    def __init__(self, engine, settings):
         self.engine = engine
+        # Speichere das Einstellungs-Dictionary ab
+        self.settings = settings
 
         self.photo = None
         self.label = None
         self.window = tk.Tk()
 
     def _resize_image(self, event):
-        """
-        Passt die Bildgröße an die Fenstergröße an, BEHÄLT aber das Seitenverhältnis bei.
-        Greift auf Daten aus der Engine zu (self.engine.image etc.).
-        """
         window_width = event.width
         window_height = event.height
 
-        # Verhindert Fehler bei Minimierung des Fensters
         if window_width < 2 or window_height < 2:
             return
 
@@ -37,7 +33,11 @@ class MosaicGUI:
             new_height = int(new_width / self.engine.original_aspect_ratio)
 
         resized_photo = self.engine.image.resize((new_width, new_height), Image.LANCZOS)
-        final_image = Image.new("RGBA", (window_width, window_height), (0, 0, 0, 255))
+
+        # NUTZUNG DER JSON-EINSTELLUNG: background_color
+        bg_color = self.settings.get("background_color", (0, 0, 0, 255))
+        final_image = Image.new("RGBA", (window_width, window_height), bg_color)
+
         paste_x = (window_width - new_width) // 2
         paste_y = (window_height - new_height) // 2
         final_image.paste(resized_photo, (paste_x, paste_y))
@@ -46,13 +46,16 @@ class MosaicGUI:
         self.label.config(image=self.photo)
 
     def show_image(self, initial_height):
-        """Initialisiert und startet die GUI."""
         if self.engine.image is None:
             print("Kein Bild zum Anzeigen vorhanden.")
             return
 
-        self.window.title("MosaicBlocks")
-        self.window.minsize(100, 100)
+        # NUTZUNG DER JSON-EINSTELLUNGEN: window_title, window_min_width, window_min_height
+        self.window.title(self.settings.get("window_title", "MosaicBlocks"))
+
+        min_w = self.settings.get("window_min_width", 100)
+        min_h = self.settings.get("window_min_height", 100)
+        self.window.minsize(min_w, min_h)
 
         # Startgröße berechnen
         initial_width = int(initial_height * self.engine.original_aspect_ratio)
@@ -66,5 +69,4 @@ class MosaicGUI:
         self.window.geometry(f"{initial_size[0]}x{initial_size[1]}")
         self.window.bind("<Configure>", self._resize_image)
 
-        # Haupt-Event-Schleife starten
         self.window.mainloop()

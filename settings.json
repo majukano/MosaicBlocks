@@ -1,0 +1,8 @@
+{
+    "default_image_path": "Bilder/Test1.jpg",
+    "initial_height": 400,
+    "window_min_width": 100,
+    "window_min_height": 100,
+    "window_title": "MosaicBlocks",
+    "background_color": [0, 0, 0, 255]
+}

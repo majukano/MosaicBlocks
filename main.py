@@ -14,6 +14,7 @@ DEFAULT_SETTINGS = {
     "window_min_height": 100,
     "window_title": "MosaicBlocks",
     "background_color": [0, 0, 0, 255],
+    "block_size": 8,  # [mm]
 }
 
 

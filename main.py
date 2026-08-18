@@ -1,8 +1,10 @@
 # main.py
 import json
 import os
+import tkinter as tk
 from mosaic_engine import MosaicEngine
 from mosaic_gui import MosaicGUI
+from mosaic_generator import MosaicGenerator
 
 SETTINGS_FILE = "settings.json"
 
@@ -13,7 +15,7 @@ DEFAULT_SETTINGS = {
     "window_min_width": 100,
     "window_min_height": 100,
     "window_title": "MosaicBlocks",
-    "background_color": [0, 0, 0, 255],
+    "background_color": (0, 0, 0, 255),
     "block_size": 8,  # [mm]
 }
 
@@ -23,7 +25,6 @@ def load_settings():
     Erstellt eine neue Datei mit Standardwerten, falls keine existiert."""
     if not os.path.exists(SETTINGS_FILE):
         try:
-            # Falls die Datei gelöscht wurde, schreiben wir die Defaults neu
             with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
                 json.dump(DEFAULT_SETTINGS, f, indent=4)
             print(f"Neue '{SETTINGS_FILE}' mit Standardwerten wurde erstellt.")
@@ -35,7 +36,6 @@ def load_settings():
     try:
         with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
             settings = json.load(f)
-            # Konvertiere die Hintergrundfarbe von einer JSON-Liste in ein Python-Tupel
             if "background_color" in settings:
                 settings["background_color"] = tuple(settings["background_color"])
             print("Einstellungen erfolgreich geladen.")
@@ -45,20 +45,31 @@ def load_settings():
         return DEFAULT_SETTINGS
 
 
-if __name__ == "__main__":
-    # 1. Lade Einstellungen aus der JSON-Datei
+def main():
+    """Hauptfunktion zum Starten der Anwendung."""
+    # 1. Lade Einstellungen
     app_settings = load_settings()
 
     # 2. Instanziiere die Engine
-    engine = MosaicEngine()
+    engine = MosaicEngine(app_settings)
 
     # 3. Lade das Bild über den Pfad aus den Einstellungen
     image_path = app_settings.get("default_image_path")
     if engine.load_image(image_path):
-        # 4. Erstelle die GUI und übergib ihr die Engine UND die geladenen Einstellungen
-        app = MosaicGUI(engine, app_settings)
+        # 4. Erstelle das Hauptfenster (root) von Tkinter
+        root = tk.Tk()
 
-        # 5. Starte die GUI mit der konfigurierten Starthöhe
+        # 5. Erstelle die GUI und übergib ihr root, engine und die Einstellungen
+        app = MosaicGUI(root, engine, app_settings)
+
+        # 6. Starte die GUI mit der konfigurierten Starthöhe
         app.show_image(initial_height=app_settings.get("initial_height", 400))
+
+        # 7. Starte die Tkinter-Ereignisschleife (hält das Fenster offen)
+        root.mainloop()
     else:
         print(f"Das Bild unter '{image_path}' konnte nicht geladen werden.")
+
+
+if __name__ == "__main__":
+    main()

@@ -2,7 +2,7 @@
 import csv
 from PIL import Image
 from mosaic_generator import MosaicGenerator
-from webrick_palette import WEBRICK_MOSAIC_PALETTE
+from webrick_palette import WEBRICK_SOLID_PALETTE
 
 
 class MosaicEngine:
@@ -16,7 +16,7 @@ class MosaicEngine:
         self.blocks_summary = None  # Zum Speichern der Farb-Anzahl für den CSV-Export
 
         # Den Generator mit der Farbpalette aus der separaten Datei initialisieren
-        palette = list(WEBRICK_MOSAIC_PALETTE.keys())
+        palette = list(WEBRICK_SOLID_PALETTE.keys())
         self.generator = MosaicGenerator(palette)
 
     def load_image(self, path):

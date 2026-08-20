@@ -191,6 +191,7 @@ class MosaicGUI:
             # Automatisch zur Mosaik-Ansicht wechseln
             self.is_mosaic_view = True
             self.show_image()
+            self._apply_picsize()  # Berechnet die Größe neu
 
         except ValueError:
             messagebox.showerror(

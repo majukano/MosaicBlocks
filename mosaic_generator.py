@@ -1,6 +1,8 @@
 # mosaic_generator.py
 from PIL import Image, ImageDraw
 from collections import defaultdict
+import cv2
+import numpy as np
 
 
 class MosaicGenerator:
@@ -12,7 +14,7 @@ class MosaicGenerator:
         # Cache für schnellere Farbsuche
         self.color_cache = {}
 
-    def _get_closest_palette_color(self, pixel_rgb):
+    def _get_closest_palette_color_simple(self, pixel_rgb):
         """
         Findet die Farbe aus der Palette, die der übergebenen Farbe am nächsten ist.
         Nutzt einen Cache, um wiederholte Berechnungen zu vermeiden.
@@ -28,7 +30,44 @@ class MosaicGenerator:
 
         for color in self.palette:
             r2, g2, b2 = color
-            distance = (r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2
+            distance = (
+                (2 * (r1 - r2) ** 2) + (7 * (g1 - g2) ** 2) + (3 * (b1 - b2) ** 2)
+            )
+
+            if distance < min_distance:
+                min_distance = distance
+                best_color = color
+
+        self.color_cache[pixel_rgb] = best_color
+        return best_color
+
+    def _get_closest_palette_color(self, pixel_rgb):
+        """
+        Findet die Farbe aus der Palette, die der übergebenen Farbe am nächsten ist.
+        Nutzt einen Cache, um wiederholte Berechnungen zu vermeiden.
+        CIELAB-optimiert via OpenCV, um Farbmischungen (z. B. Grün/Grau) zu verhindern.
+        """
+        # Falls RGBA, ignoriere Alpha
+        pixel_rgb = pixel_rgb[:3]
+
+        if pixel_rgb in self.color_cache:
+            return self.color_cache[pixel_rgb]
+
+        # 1. Konvertiere die Ziel-RGB-Farbe in den LAB-Farbraum
+        # cv2.cvtColor erwartet ein 3D-Array [Höhe, Breite, Kanäle] vom Typ uint8
+        pixel_lab = cv2.cvtColor(np.uint8([[pixel_rgb]]), cv2.COLOR_RGB2LAB)[0][0]
+
+        min_distance = float("inf")
+        best_color = self.palette[0]
+
+        # 2. Iteriere durch die Farbpalette
+        for color in self.palette:
+            # Konvertiere die Palettenfarbe in den LAB-Farbraum
+            color_lab = cv2.cvtColor(np.uint8([[color]]), cv2.COLOR_RGB2LAB)[0][0]
+
+            # 3. Berechne den euklidischen Abstand im LAB-Raum (Delta E* 76)
+            # Wir casten zu float, um Berechnungsfehler durch uint8-Überläufe zu vermeiden
+            distance = np.linalg.norm(pixel_lab.astype(float) - color_lab.astype(float))
 
             if distance < min_distance:
                 min_distance = distance

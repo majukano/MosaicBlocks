@@ -44,35 +44,52 @@ class MosaicGenerator:
     def _get_closest_palette_color(self, pixel_rgb):
         """
         Findet die Farbe aus der Palette, die der übergebenen Farbe am nächsten ist.
-        Nutzt einen Cache, um wiederholte Berechnungen zu vermeiden.
-        CIELAB-optimiert via OpenCV, um Farbmischungen (z. B. Grün/Grau) zu verhindern.
+        Beinhaltet eine spezielle Regel für Schwarz, um die CIELAB-Ungenauigkeit zu korrigieren.
+        Nutzt einen Cache für bessere Performance.
         """
-        # Falls RGBA, ignoriere Alpha
-        pixel_rgb = pixel_rgb[:3]
+        # Erzwinge, dass der RGB-Wert immer ein Tupel ist, um das Caching zu sichern.
+        pixel_rgb = tuple(pixel_rgb[:3])
 
+        # 1. Prüfe den Cache für bekannte Farben
         if pixel_rgb in self.color_cache:
             return self.color_cache[pixel_rgb]
 
-        # 1. Konvertiere die Ziel-RGB-Farbe in den LAB-Farbraum
-        # cv2.cvtColor erwartet ein 3D-Array [Höhe, Breite, Kanäle] vom Typ uint8
+        # 2. Ausnahmeregel für Schwarz
+        #    LEGO-Schwarz ist (27, 42, 52), Dunkelbraun ist (54, 30, 13).
+        #    Die Helligkeit (Luminanz) hilft, sie zu unterscheiden. Reines Schwarz (0,0,0)
+        #    ist rechnerisch näher am dunklen Braun. Wir korrigieren das hier.
+        #    Ein Helligkeits-Schwellenwert von unter 30 deckt die meisten schwarzen
+        #    Farbtöne ab, ohne dunkle Farben wie "Dark Brown" oder "Dark Blue" fälschlicherweise
+        #    zu erfassen.
+        r, g, b = pixel_rgb
+        brightness = 0.299 * r + 0.587 * g + 0.114 * b
+
+        if brightness < 30:
+            # Weise den Pixel direkt der Farbe "Schwarz" aus der Palette zu.
+            # RGB-Wert für "Schwarz": (27, 42, 52)
+            best_color = (27, 42, 52)
+            self.color_cache[pixel_rgb] = best_color
+            return best_color
+
+        # 3. Wenn nicht schwarz, führe die normale CIELAB-Berechnung durch
+        #    Dies bleibt der beste Weg für alle anderen Farben.
         pixel_lab = cv2.cvtColor(np.uint8([[pixel_rgb]]), cv2.COLOR_RGB2LAB)[0][0]
 
         min_distance = float("inf")
         best_color = self.palette[0]
 
-        # 2. Iteriere durch die Farbpalette
+        # Wir nutzen die CIELAB-konvertierten Farben der Palette für den Vergleich.
         for color in self.palette:
-            # Konvertiere die Palettenfarbe in den LAB-Farbraum
+            # Konvertiere jede Palettenfarbe in den CIELAB-Raum
             color_lab = cv2.cvtColor(np.uint8([[color]]), cv2.COLOR_RGB2LAB)[0][0]
-
-            # 3. Berechne den euklidischen Abstand im LAB-Raum (Delta E* 76)
-            # Wir casten zu float, um Berechnungsfehler durch uint8-Überläufe zu vermeiden
+            # Berechne die euklidische Distanz im LAB-Raum
             distance = np.linalg.norm(pixel_lab.astype(float) - color_lab.astype(float))
 
             if distance < min_distance:
                 min_distance = distance
                 best_color = color
 
+        # 4. Speichere das Ergebnis im Cache und gib es zurück
         self.color_cache[pixel_rgb] = best_color
         return best_color
 

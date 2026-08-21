@@ -4,9 +4,10 @@ import os
 import tkinter as tk
 from mosaic_engine import MosaicEngine
 from mosaic_gui import MosaicGUI
-from mosaic_generator import MosaicGenerator
 
 SETTINGS_FILE = "settings.json"
+
+# IKEA-Billi Regal Breite = 45 Noppen (8mm)
 
 # Definiere feste "Fallback"-Standards für den Fall, dass die JSON-Datei fehlt
 DEFAULT_SETTINGS = {
